@@ -32,12 +32,12 @@ time:
 # Enable Home Assistant API
 api:
   encryption:
-    key: "PPGgpzUMYa6FeYx6zV55Wrb1AWqUUip3o7e3Q4xh38E="
+    key: !secret api_encryption_key
 
 # Allow Over-The-Air updates
 ota:
   - platform: esphome
-    password: "2a09f32611f4a2d44772c7b0fc720c4a"
+    password: !secret ota_password
 
 # Allow provisioning Wi-Fi via serial
 improv_serial:
