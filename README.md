@@ -350,3 +350,8 @@ Thomas Sanladerer ([@MadeWithLayers](https://www.printables.com/@MadeWithLayers)
 [https://www.printables.com/model/1079858-3d-printer-emission-sensor-array-sensorbox-v2](https://www.printables.com/model/1079858-3d-printer-emission-sensor-array-sensorbox-v2)
 
 This is a truly excellent project. The PCB design in particular — breaking out all ESP32-S2 GPIO pins, supporting multiple interchangeable sensor configurations and fitting everything into a compact 3D-printed enclosure — makes it one of the most practical and well-executed open hardware air quality monitors available. Highly recommended.
+
+**ESPHome configuration modifications:**
+Developed with the assistance of [Claude](https://claude.ai) (Anthropic), an AI assistant. The modifications — including the LVGL display implementation, sensor threshold research, display driver migration, comfort index calculations, and various ESPHome-specific fixes — were developed collaboratively through an iterative session of hardware debugging, firmware development and testing.
+
+If you find these configs useful, consider giving the original Sensorbox V2 project a like on Printables and checking out Thomas's YouTube channel [@MadeWithLayers](https://www.youtube.com/@MadeWithLayers).
