@@ -248,14 +248,14 @@ display:
     ...
 ```
 
-### Temperature, Humidity and Comfort Index
+### Temperature, Humidity, Pressure and Dewpoint
 
-The header row displays four values derived from the AHT20:
+The header row displays four values:
 
-- **TEMP** — colour-coded based on ASHRAE 55 home comfort range
-- **HUM** — colour-coded based on ASHRAE 62.1 and CIBSE Guide A
-- **FEEL** — Humidex "feels like" temperature, calculated from temperature and humidity
-- **DEW** — dewpoint temperature, colour-coded for indoor comfort
+- **TEMP** — temperature from AHT20, colour-coded based on ASHRAE 55 home comfort range
+- **HUM** — relative humidity from AHT20, colour-coded based on ASHRAE 62.1 and CIBSE Guide A
+- **QNH** — sea-level corrected pressure from BMP280, colour-coded for weather indication
+- **DEW** — dewpoint temperature calculated from AHT20 temp + humidity
 
 #### Temperature thresholds (ASHRAE 55)
 
@@ -273,14 +273,16 @@ The header row displays four values derived from the AHT20:
 | 🟡 Amber | 30–40% or 60–65% | Dry or humid but acceptable |
 | 🔴 Red | <30% or >65% | Too dry (irritation, static) or mould risk |
 
-#### Humidex (FEEL) comfort thresholds
+#### QNH pressure thresholds
 
 | Colour | Range | Meaning |
 |--------|-------|---------|
-| 🟡 Amber | <20°C | Below comfort zone — feels cool |
-| 🟢 Green | 20–29°C | Comfortable — no discomfort |
-| 🟡 Amber | 30–39°C | Warm — some discomfort |
-| 🔴 Red | >39°C | Hot — heat stress risk |
+| 🔴 Red | <980 hPa | Storm / severe weather approaching |
+| 🟡 Amber | 980–1000 hPa | Low pressure, unsettled conditions |
+| 🟢 Green | 1000–1030 hPa | Normal range, settled weather |
+| 🟡 Amber | >1030 hPa | Very high pressure, very dry conditions |
+
+QNH is the sea-level corrected barometric pressure — the same value reported by weather services and apps. A falling QNH indicates deteriorating weather; a rising QNH indicates improving conditions. Remember to set your altitude correctly (see [Altitude Calibration](#altitude-calibration--qnh-pressure-correction) above).
 
 #### Dewpoint (DEW) thresholds
 
@@ -293,10 +295,9 @@ The header row displays four values derived from the AHT20:
 
 Dewpoint is a more reliable indicator of perceived humidity than relative humidity alone, as it is independent of temperature. A dewpoint above 21°C is generally considered uncomfortable regardless of the actual temperature.
 
-Both Humidex and Dewpoint are calculated on-device using the Magnus approximation:
+Dewpoint is calculated on-device using the Magnus approximation:
 ```
 dewpoint ≈ T - ((100 - RH) / 5)
-humidex  = T + 0.5555 * (6.11 * e^(5417.753*(1/273.16 - 1/(273.16+Td))) - 10)
 ```
 
 Accurate to within 0.35°C for typical indoor temperature ranges.
