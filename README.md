@@ -292,6 +292,37 @@ Arc gauges use a three-level colour scale based on indoor air quality guidelines
 
 ---
 
+## Particle Matter — Cumulative vs Differential Display
+
+The PMS5003 reports **cumulative** particle concentrations, meaning each band includes all smaller particles:
+
+- **PM1** = all particles ≤1.0µm
+- **PM2.5** = all particles ≤2.5µm (includes PM1)
+- **PM10** = all particles ≤10µm (includes PM2.5 and PM1)
+
+This means PM10 ≥ PM2.5 ≥ PM1 at all times in cumulative mode, which is the industry standard way of reporting and the basis for all WHO and regulatory guidelines.
+
+An alternative **differential** view is also available, which shows the actual particle size distribution:
+
+- **PM1** = particles ≤1.0µm (unchanged)
+- **PM1–2.5** = particles in the 1.0–2.5µm band only (PM2.5 − PM1)
+- **PM2.5–10** = particles in the 2.5–10µm band only (PM10 − PM2.5)
+
+> **Note for 3D printer monitoring:** Emissions from common filaments (particularly ABS, ASA and resin) are predominantly ultrafine particles in the PM0.1–PM1 range. In differential mode you will typically see most of the mass in the PM1 band when printing, with very little in the PM1–2.5 or PM2.5–10 bands. This is expected and confirms the ultrafine nature of 3D printer emissions.
+
+> **Note on thresholds in differential mode:** The WHO/indoor air quality thresholds used for arc colouring are defined for cumulative values. In differential mode the arc colours remain active but the thresholds are less meaningful — treat them as relative indicators rather than absolute health limits when in differential mode.
+
+### Switching modes
+
+The display mode can be changed two ways:
+
+1. **Home Assistant** — a switch entity named **PM Differential Mode** is exposed to HA. Toggle it from any HA dashboard or automation
+2. **On-screen** — tap the `PARTICLES CUMUL` / `PARTICLES DIFF` heading label directly on the display
+
+Both methods are synchronised — toggling from HA updates the display label and arc names immediately, and vice versa.
+
+---
+
 ## Hardware Notes
 
 ### mipi_spi Transform Requirements
