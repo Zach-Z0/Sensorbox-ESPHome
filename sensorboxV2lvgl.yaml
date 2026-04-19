@@ -388,7 +388,7 @@ lvgl:
                   - lvgl.label.update:
                       id: lbl_particles_mode
                       text: !lambda |-
-                        return id(pm_diff_mode) ? "PARTICLES DIFF  µg/m³" : "PARTICLES CUMUL  µg/m³";
+                        return std::string(id(pm_diff_mode) ? "PARTICLES DIFF  µg/m³" : "PARTICLES CUMUL  µg/m³");
                   - lvgl.arc.update:
                       id: arc_pm1
                       value: !lambda "return id(lv_pm1_val);"
@@ -416,11 +416,11 @@ lvgl:
                   - lvgl.label.update:
                       id: lbl_pm25_name
                       text: !lambda |-
-                        return id(pm_diff_mode) ? "PM1-2.5" : "PM2.5";
+                        return std::string(id(pm_diff_mode) ? "PM1-2.5" : "PM2.5");
                   - lvgl.label.update:
                       id: lbl_pm10_name
                       text: !lambda |-
-                        return id(pm_diff_mode) ? "PM2.5-10" : "PM10";
+                        return std::string(id(pm_diff_mode) ? "PM2.5-10" : "PM10");
 
           - obj:
               x: 0
