@@ -1,0 +1,68 @@
+Creative Commons Attribution 4.0 International License
+
+This work is licensed under the Creative Commons Attribution 4.0 International
+License (CC BY 4.0).
+
+=============================================================================
+
+ORIGINAL WORK
+
+3D Printer Emission Sensor Array (Sensorbox V2)
+Copyright (c) Thomas Sanladerer (@MadeWithLayers)
+https://www.printables.com/model/1079858-3d-printer-emission-sensor-array-sensorbox-v2
+
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+=============================================================================
+
+DERIVATIVE WORK
+
+ESPHome Configuration Modifications
+https://github.com/[your-username]/[your-repo]
+
+This work is a derivative of the original Sensorbox V2 project by Thomas
+Sanladerer, modified to:
+
+  - Migrate the display driver from the deprecated ili9xxx platform to
+    the current mipi_spi platform
+  - Refactor the display lambda for improved code efficiency
+  - Add an LVGL-based display implementation using arc gauge widgets
+  - Add QNH sea-level pressure correction for the BMP280 sensor
+  - Various configuration improvements and updates for ESPHome 2026.x
+
+This derivative work is released under the same Creative Commons Attribution
+4.0 International License as the original.
+
+=============================================================================
+
+LICENSE TERMS SUMMARY
+
+You are free to:
+
+  Share  — copy and redistribute the material in any medium or format
+  Adapt  — remix, transform, and build upon the material for any purpose,
+           even commercially
+
+Under the following terms:
+
+  Attribution — You must give appropriate credit to both the original author
+                (Thomas Sanladerer) and this derivative work, provide a link
+                to the license, and indicate if changes were made. You may do
+                so in any reasonable manner, but not in any way that suggests
+                the licensor endorses you or your use.
+
+  No additional restrictions — You may not apply legal terms or technological
+                               measures that legally restrict others from doing
+                               anything the license permits.
+
+=============================================================================
+
+FULL LICENSE TEXT
+
+The full text of the Creative Commons Attribution 4.0 International License
+is available at:
+
+  https://creativecommons.org/licenses/by/4.0/legalcode
+
+=============================================================================
