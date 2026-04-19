@@ -79,7 +79,12 @@ filters:
   - lambda: return x / pow(1.0 - (50.0 / 44330.0), 5.255);
 ```
 
-If you are at sea level, you can remove the filter entirely or set the value to `0.0`. If you don't know your altitude, [Google Maps](https://maps.google.com) will show elevation when you right-click any location, or search for your suburb/postcode with "elevation" appended.
+If you are at sea level, you can remove the filter entirely or set the value to `0.0`. If you don't know your altitude, any of these methods work reliably:
+
+- [whatismyelevation.com](https://www.whatismyelevation.com) — shows your elevation automatically using your browser's location
+- [elevatr R package / open-elevation.com](https://api.open-elevation.com) — open API, no account needed
+- Your phone's built-in compass or GPS app often shows altitude
+- Search **"[your suburb] elevation"** on Google — for most locations this returns a direct answer in the search results even if Maps itself doesn't show it
 
 ---
 
