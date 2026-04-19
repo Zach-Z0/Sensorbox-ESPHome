@@ -249,7 +249,7 @@ font:
 #   CONNECTED:  AHT20, BMP280, SCD40, SGP30, PMSX003, ZE08-CH2O
 #   FAILED:     SHT40, ENS160, AHT20/ENS160 (i2c_2), SGP4x
 #
-#   y=  0.. 38  Header: Temp / Humidity / Datetime
+#   y=  0.. 38  Header: Temp / Hum / QNH / Dew / Datetime
 #   y= 39        Divider
 #   y= 40..134  Particles  (3 arcs: PM1  PM2.5  PM10)
 #   y=135        Divider
@@ -296,15 +296,15 @@ lvgl:
               hidden: true
 
           - label:
-              x: 92
+              x: 64
               y: 2
-              text: "HUMIDITY"
+              text: "HUM"
               text_font: font_small
               text_color: 0x666666
 
           - label:
               id: lbl_hum
-              x: 92
+              x: 64
               y: 13
               text: "--%"
               text_font: font_value
@@ -312,15 +312,31 @@ lvgl:
               hidden: true
 
           - label:
-              x: 174
+              x: 124
               y: 2
-              text: "FEELS LIKE"
+              text: "QNH"
               text_font: font_small
               text_color: 0x666666
 
           - label:
-              id: lbl_humidex
-              x: 174
+              id: lbl_qnh
+              x: 124
+              y: 13
+              text: "----"
+              text_font: font_value
+              text_color: 0xCCCCCC
+              hidden: true
+
+          - label:
+              x: 184
+              y: 2
+              text: "DEW"
+              text_font: font_small
+              text_color: 0x666666
+
+          - label:
+              id: lbl_dewpoint
+              x: 184
               y: 13
               text: "--°C"
               text_font: font_value
@@ -980,13 +996,12 @@ sensor:
                 return lv_color_hex(0x00C800);                        // ASHRAE / CIBSE optimal
     update_interval: 5s
 
-  # Humidex — perceived temperature from AHT20 temp + humidity
-  # Formula: humidex = T + 0.5555 * (6.11 * e^(5417.753*(1/273.16 - 1/(273.16+Td))) - 10)
-  # Dewpoint approximation: Td ≈ T - ((100 - RH) / 5)  (Magnus, accurate for indoor ranges)
-  # Thresholds: <20 cool (amber), 20-29 comfortable (green), 30-39 warm (amber), >39 hot (red)
+  # Dewpoint — calculated from AHT20 temp + humidity using Magnus approximation
+  # Td ≈ T - ((100 - RH) / 5)  accurate to ±0.35°C for typical indoor ranges
+  # Thresholds: <10°C dry (amber), 10-16°C comfortable (green), >16°C humid (amber), >21°C muggy (red)
   - platform: template
-    name: "Humidex"
-    id: humidex
+    name: "Dewpoint"
+    id: dewpoint
     unit_of_measurement: "°C"
     device_class: temperature
     state_class: measurement
@@ -996,25 +1011,23 @@ sensor:
       if (!id(temp_aht20).has_state() || !id(hum_aht20).has_state()) return NAN;
       float T  = id(temp_aht20).state;
       float RH = id(hum_aht20).state;
-      float Td = T - ((100.0f - RH) / 5.0f);
-      float e  = 6.11f * expf(5417.7530f * (1.0f/273.16f - 1.0f/(273.16f + Td)));
-      return T + 0.5555f * (e - 10.0f);
+      return T - ((100.0f - RH) / 5.0f);
     on_value:
       then:
         - lvgl.widget.update:
-            id: lbl_humidex
+            id: lbl_dewpoint
             hidden: false
         - lvgl.label.update:
-            id: lbl_humidex
+            id: lbl_dewpoint
             text: !lambda |-
               char buf[8]; snprintf(buf, sizeof(buf), "%.0f°C", x); return buf;
         - lvgl.label.update:
-            id: lbl_humidex
+            id: lbl_dewpoint
             text_color: !lambda |-
-              if (x > 39) return lv_color_hex(0xFF1616); // Hot — heat stress risk
-              if (x > 29) return lv_color_hex(0xFF9900); // Warm — uncomfortable
-              if (x < 20) return lv_color_hex(0xFF9900); // Cool — below comfort zone
-              return lv_color_hex(0x00C800);              // 20-29 comfortable
+              if (x > 21) return lv_color_hex(0xFF1616); // Muggy — uncomfortably humid
+              if (x > 16) return lv_color_hex(0xFF9900); // Humid — getting uncomfortable
+              if (x < 10) return lv_color_hex(0xFF9900); // Dry — low humidity
+              return lv_color_hex(0x00C800);              // 10-16°C comfortable indoor range
 
   # BMP280 — pressure with QNH correction for 120m altitude
   - platform: bmp280_i2c
@@ -1029,6 +1042,22 @@ sensor:
       id: pres_bmp280
       filters:
         - lambda: return x / pow(1.0 - (120.0 / 44330.0), 5.255);
+      on_value:
+        then:
+          - lvgl.widget.update:
+              id: lbl_qnh
+              hidden: false
+          - lvgl.label.update:
+              id: lbl_qnh
+              text: !lambda |-
+                char buf[8]; snprintf(buf, sizeof(buf), "%.0f", x); return buf;
+          - lvgl.label.update:
+              id: lbl_qnh
+              text_color: !lambda |-
+                if (x < 980) return lv_color_hex(0xFF1616); // Storm / severe weather
+                if (x < 1000) return lv_color_hex(0xFF9900); // Low pressure, unsettled
+                if (x > 1030) return lv_color_hex(0xFF9900); // Very high pressure, very dry
+                return lv_color_hex(0x00C800);               // Normal range
     iir_filter: 16x
     update_interval: 5s
 
