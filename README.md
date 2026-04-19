@@ -1,4 +1,3 @@
-# Sensorbox-ESPHome
 # Sensorbox V2 — ESPHome Configuration Notes
 
 This repository contains modified ESPHome configurations for the **3D Printer Emission Sensor Array (Sensorbox V2)** by Thomas Sanladerer ([@MadeWithLayers](https://www.printables.com/@MadeWithLayers)).
@@ -223,19 +222,73 @@ display:
     ...
 ```
 
+### Temperature, Humidity and Comfort Index
+
+The header row displays three values derived from the AHT20:
+
+- **Temperature** — colour-coded based on ASHRAE 55 home comfort range
+- **Humidity** — colour-coded based on ASHRAE 62.1 and CIBSE Guide A
+- **Humidex** — a "feels like" temperature calculated from temperature and humidity using the Humidex formula (Magnus approximation for dewpoint). Displayed with its own comfort colour coding
+
+#### Temperature thresholds (ASHRAE 55)
+
+| Colour | Range | Meaning |
+|--------|-------|---------|
+| 🟢 Green | 19–26°C | ASHRAE 55 comfort zone |
+| 🟡 Amber | 16–19°C or 26–30°C | Cool or warm but tolerable |
+| 🔴 Red | <16°C or >30°C | Too cold or too hot |
+
+#### Humidity thresholds (ASHRAE 62.1 / CIBSE Guide A)
+
+| Colour | Range | Meaning |
+|--------|-------|---------|
+| 🟢 Green | 40–60% | Optimal indoor range |
+| 🟡 Amber | 30–40% or 60–65% | Dry or humid but acceptable |
+| 🔴 Red | <30% or >65% | Too dry (irritation, static) or mould risk |
+
+#### Humidex comfort thresholds
+
+| Colour | Range | Meaning |
+|--------|-------|---------|
+| 🟡 Amber | <20°C | Below comfort zone — feels cool |
+| 🟢 Green | 20–29°C | Comfortable — no discomfort |
+| 🟡 Amber | 30–39°C | Warm — some discomfort |
+| 🔴 Red | >39°C | Hot — heat stress risk |
+
+The Humidex is calculated on-device using:
+```
+dewpoint ≈ T - ((100 - RH) / 5)
+humidex  = T + 0.5555 * (6.11 * e^(5417.753*(1/273.16 - 1/(273.16+Td))) - 10)
+```
+
+This is the Magnus approximation for dewpoint, accurate to within 0.35°C for typical indoor temperature ranges.
+
+---
+
 ### Colour Thresholds
 
-All sensors use the same colour scale:
+Arc gauges use a three-level colour scale based on indoor air quality guidelines for a home environment. Thresholds are intentionally tighter than general/outdoor or workplace standards, reflecting that occupants may have prolonged exposure in a living space.
 
 | Colour | Meaning |
 |--------|---------|
-| White | Normal / Good |
-| Yellow | Caution |
-| Orange | Warning |
-| Red | Danger |
-| Purple | Severe |
+| 🟢 Green | Good — within recommended indoor limits |
+| 🟡 Amber | Warning — elevated, investigate sources or increase ventilation |
+| 🔴 Red | Dangerous — take action, ventilate immediately |
 
-Specific thresholds per sensor match WHO and industry guidelines for indoor air quality.
+#### Thresholds by sensor
+
+| Sensor | Green | Amber | Red | Reference |
+|--------|-------|-------|-----|-----------|
+| **PM1** (µg/m³) | 0–10 | 10–25 | >25 | WHO 2021 (mirrors PM2.5) |
+| **PM2.5** (µg/m³) | 0–10 | 10–25 | >25 | WHO 2021 indoor guideline |
+| **PM10** (µg/m³) | 0–20 | 20–45 | >45 | WHO 2021 indoor guideline |
+| **CO2** (ppm) | 400–800 | 800–1200 | >1200 | ASHRAE / RESET Air standard |
+| **TVOC** (ppb) | 0–300 | 300–500 | >500 | WELL Building Standard |
+| **CH2O** (ppb) | 0–50 | 50–100 | >100 | WHO indoor guideline (80ppb 30-min avg) |
+
+> **Note on PM1:** No official WHO standard exists specifically for PM1. The PM2.5 thresholds are applied as a conservative approximation given the smaller particle size.
+>
+> **Note on formaldehyde:** Thresholds are especially relevant when monitoring a 3D printer enclosure, as several common filaments (particularly ABS, ASA and resin) are known sources of formaldehyde and VOC emissions.
 
 ---
 
