@@ -18,6 +18,51 @@ This repository contains modified ESPHome configurations for the **3D Printer Em
 
 ---
 
+## Before You Flash
+
+Before compiling either config, you will need to supply your own credentials. There are two ways to do this:
+
+**Option A — Use a `secrets.yaml` file (recommended)**
+Add the following entries to your ESPHome `secrets.yaml` file:
+
+```yaml
+wifi_ssid: "your_wifi_ssid"
+wifi_password: "your_wifi_password"
+api_encryption_key: "your_api_encryption_key"
+ota_password: "your_ota_password"
+```
+
+Then update the config files to reference them:
+
+```yaml
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+```
+
+**Option B — Enter credentials directly in the yaml**
+Replace the placeholder values in the config file directly:
+
+```yaml
+api:
+  encryption:
+    key: "your_api_encryption_key_here"
+
+ota:
+  - platform: esphome
+    password: "your_ota_password_here"
+```
+
+A new API encryption key can be generated from the ESPHome dashboard when creating a new device, or via the ESPHome CLI with `esphome generate-api-key`.
+
+> **Note:** Do not commit your actual credentials to a public repository. If using Option B, ensure your yaml files are in `.gitignore` or that credentials have been removed before pushing.
+
+---
+
 ## Non-LVGL Version (`airquality01.yaml`)
 
 ### Overview
