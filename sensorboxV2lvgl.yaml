@@ -77,9 +77,110 @@ debug:
   update_interval: 5s
 
 
+# ── PM Display Mode Switch ───────────────────────────────────────────────────
+# Exposed to Home Assistant — allows toggling between cumulative and differential
+# PM display mode. Can also be toggled by tapping the PARTICLES heading on-screen.
+switch:
+  - platform: template
+    name: "PM Differential Mode"
+    id: sw_pm_diff
+    icon: "mdi:chart-bar-stacked"
+    restore_mode: RESTORE_DEFAULT_OFF
+    lambda: "return id(pm_diff_mode);"
+    turn_on_action:
+      - lambda: |-
+          id(pm_diff_mode) = true;
+          id(lv_pm25_val) = (int)clamp(max(0.0f, id(raw_pm25) - id(raw_pm1)),  0.0f, 30.0f);
+          id(lv_pm10_val) = (int)clamp(max(0.0f, id(raw_pm10) - id(raw_pm25)), 0.0f, 100.0f);
+      - lvgl.label.update:
+          id: lbl_particles_mode
+          text: "PARTICLES DIFF  µg/m³"
+      - lvgl.label.update:
+          id: lbl_pm25_name
+          text: "PM1-2.5"
+      - lvgl.label.update:
+          id: lbl_pm10_name
+          text: "PM2.5-10"
+      - lvgl.arc.update:
+          id: arc_pm25
+          value: !lambda "return id(lv_pm25_val);"
+      - lvgl.label.update:
+          id: lbl_pm25
+          text: !lambda |-
+            char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm25_val)); return buf;
+      - lvgl.arc.update:
+          id: arc_pm10
+          value: !lambda "return id(lv_pm10_val);"
+      - lvgl.label.update:
+          id: lbl_pm10
+          text: !lambda |-
+            char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm10_val)); return buf;
+    turn_off_action:
+      - lambda: |-
+          id(pm_diff_mode) = false;
+          id(lv_pm25_val) = (int)clamp(id(raw_pm25), 0.0f, 30.0f);
+          id(lv_pm10_val) = (int)clamp(id(raw_pm10), 0.0f, 100.0f);
+      - lvgl.label.update:
+          id: lbl_particles_mode
+          text: "PARTICLES CUMUL  µg/m³"
+      - lvgl.label.update:
+          id: lbl_pm25_name
+          text: "PM2.5"
+      - lvgl.label.update:
+          id: lbl_pm10_name
+          text: "PM10"
+      - lvgl.arc.update:
+          id: arc_pm25
+          value: !lambda "return id(lv_pm25_val);"
+      - lvgl.label.update:
+          id: lbl_pm25
+          text: !lambda |-
+            char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm25_val)); return buf;
+      - lvgl.arc.update:
+          id: arc_pm10
+          value: !lambda "return id(lv_pm10_val);"
+      - lvgl.label.update:
+          id: lbl_pm10
+          text: !lambda |-
+            char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm10_val)); return buf;
+
 # ── Backlight dimming ────────────────────────────────────────────────────────
 globals:
   - id: dbright
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  # PM display mode: 0 = cumulative (default), 1 = differential
+  - id: pm_diff_mode
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  # Last known raw PM values — needed to recalculate on mode toggle
+  - id: raw_pm1
+    type: float
+    restore_value: no
+    initial_value: '0'
+  - id: raw_pm25
+    type: float
+    restore_value: no
+    initial_value: '0'
+  - id: raw_pm10
+    type: float
+    restore_value: no
+    initial_value: '0'
+
+  # Cached display values for PM arcs — used by click handler to refresh display
+  - id: lv_pm1_val
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: lv_pm25_val
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: lv_pm10_val
     type: int
     restore_value: no
     initial_value: '0'
@@ -120,20 +221,25 @@ binary_sensor:
 # ── /Backlight dimming ───────────────────────────────────────────────────────
 
 
-# ── Fonts ────────────────────────────────────────────────────────────────────
+# ── Fonts ────────────────────────────────────────────
+# All three fonts include µ and ³ explicitly — these are not in the default
+# Roboto glyph set but are needed for the "µg/m³" particle concentration label.
 font:
   - file: "gfonts://Roboto"
     id: font_small
     size: 11
     bpp: 4
+    glyphs: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,:/°%µ³()-_"
   - file: "gfonts://Roboto"
     id: font_value
     size: 18
     bpp: 4
+    glyphs: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,:/°%µ³()-_"
   - file: "gfonts://Roboto@500"
     id: font_heading
     size: 13
     bpp: 4
+    glyphs: "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ .,:/°%µ³()-_"
 
 
 # ── LVGL ─────────────────────────────────────────────────────────────────────
@@ -174,19 +280,49 @@ lvgl:
         pad_all: 0
         widgets:
           - label:
+              x: 4
+              y: 2
+              text: "TEMP"
+              text_font: font_small
+              text_color: 0x666666
+
+          - label:
               id: lbl_temp
               x: 4
-              y: 4
-              text: "--.-°C"
+              y: 13
+              text: "--°C"
               text_font: font_value
               text_color: 0xCCCCCC
               hidden: true
 
           - label:
+              x: 92
+              y: 2
+              text: "HUMIDITY"
+              text_font: font_small
+              text_color: 0x666666
+
+          - label:
               id: lbl_hum
-              x: 110
-              y: 4
-              text: "--.-%"
+              x: 92
+              y: 13
+              text: "--%"
+              text_font: font_value
+              text_color: 0xCCCCCC
+              hidden: true
+
+          - label:
+              x: 174
+              y: 2
+              text: "FEELS LIKE"
+              text_font: font_small
+              text_color: 0x666666
+
+          - label:
+              id: lbl_humidex
+              x: 174
+              y: 13
+              text: "--°C"
               text_font: font_value
               text_color: 0xCCCCCC
               hidden: true
@@ -194,10 +330,10 @@ lvgl:
           - label:
               id: lbl_datetime
               x: 4
-              y: 24
+              y: 28
               text: "--/--/---- --:--"
               text_font: font_small
-              text_color: 0x666666
+              text_color: 0x444444
 
     # ── DIVIDER ──────────────────────────────────────────────────────────────
     - line:
@@ -222,11 +358,69 @@ lvgl:
         hidden: true
         widgets:
           - label:
+              id: lbl_particles_mode
               x: 4
               y: 2
-              text: "PARTICLES  µg/m³"
+              text: "PARTICLES CUMUL  µg/m³"
               text_font: font_heading
               text_color: 0x666666
+              clickable: true
+              on_click:
+                then:
+                  - lambda: |-
+                      id(pm_diff_mode) = !id(pm_diff_mode);
+                      float pm1  = id(raw_pm1);
+                      float pm25 = id(raw_pm25);
+                      float pm10 = id(raw_pm10);
+                      float v1, v25, v10;
+                      if (id(pm_diff_mode)) {
+                        v1  = pm1;
+                        v25 = max(0.0f, pm25 - pm1);
+                        v10 = max(0.0f, pm10 - pm25);
+                      } else {
+                        v1  = pm1;
+                        v25 = pm25;
+                        v10 = pm10;
+                      }
+                      id(lv_pm1_val)  = (int)clamp(v1,  0.0f, 30.0f);
+                      id(lv_pm25_val) = (int)clamp(v25, 0.0f, 30.0f);
+                      id(lv_pm10_val) = (int)clamp(v10, 0.0f, 100.0f);
+                  - lvgl.label.update:
+                      id: lbl_particles_mode
+                      text: !lambda |-
+                        return id(pm_diff_mode) ? "PARTICLES DIFF  µg/m³" : "PARTICLES CUMUL  µg/m³";
+                  - lvgl.arc.update:
+                      id: arc_pm1
+                      value: !lambda "return id(lv_pm1_val);"
+                  - lvgl.label.update:
+                      id: lbl_pm1
+                      text: !lambda |-
+                        char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm1_val)); return buf;
+                  - lvgl.arc.update:
+                      id: arc_pm25
+                      value: !lambda "return id(lv_pm25_val);"
+                  - lvgl.label.update:
+                      id: lbl_pm25
+                      text: !lambda |-
+                        char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm25_val)); return buf;
+                  - lvgl.arc.update:
+                      id: arc_pm10
+                      value: !lambda "return id(lv_pm10_val);"
+                  - lvgl.label.update:
+                      id: lbl_pm10
+                      text: !lambda |-
+                        char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm10_val)); return buf;
+                  - lvgl.label.update:
+                      id: lbl_pm1_name
+                      text: "PM1"
+                  - lvgl.label.update:
+                      id: lbl_pm25_name
+                      text: !lambda |-
+                        return id(pm_diff_mode) ? "PM1-2.5" : "PM2.5";
+                  - lvgl.label.update:
+                      id: lbl_pm10_name
+                      text: !lambda |-
+                        return id(pm_diff_mode) ? "PM2.5-10" : "PM10";
 
           - obj:
               x: 0
@@ -267,6 +461,7 @@ lvgl:
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
+                          id: lbl_pm1_name
                           align: BOTTOM_MID
                           y: 2
                           text: "PM1"
@@ -298,6 +493,7 @@ lvgl:
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
+                          id: lbl_pm25_name
                           align: BOTTOM_MID
                           y: 2
                           text: "PM2.5"
@@ -329,6 +525,7 @@ lvgl:
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
+                          id: lbl_pm10_name
                           align: BOTTOM_MID
                           y: 2
                           text: "PM10"
@@ -721,11 +918,9 @@ sensor:
             id: arc_ch2o
             indicator:
               arc_color: !lambda |-
-                if (x > 200) return lv_color_hex(0xFF16e0);
-                if (x > 150) return lv_color_hex(0xFF1616);
-                if (x > 100) return lv_color_hex(0xFF9C32);
-                if (x > 60)  return lv_color_hex(0xFFFA72);
-                return lv_color_hex(0xFFFFFF);
+                if (x > 100) return lv_color_hex(0xFF1616);   // WHO indoor limit
+                if (x > 50)  return lv_color_hex(0xFF9900); // Conservative warning
+                return lv_color_hex(0x00C800);
 
   - platform: uptime
     name: "Uptime"
@@ -758,7 +953,13 @@ sensor:
           - lvgl.label.update:
               id: lbl_temp
               text: !lambda |-
-                char buf[10]; snprintf(buf, sizeof(buf), "%.1f°C", x); return buf;
+                char buf[8]; snprintf(buf, sizeof(buf), "%.0f°C", x); return buf;
+          - lvgl.label.update:
+              id: lbl_temp
+              text_color: !lambda |-
+                if (x > 30 || x < 16) return lv_color_hex(0xFF1616); // Too hot / too cold
+                if (x > 26 || x < 19) return lv_color_hex(0xFF9900); // Warm / cool
+                return lv_color_hex(0x00C800);                        // ASHRAE 55 comfort zone
     humidity:
       name: "AHT20 Humidity"
       id: hum_aht20
@@ -770,8 +971,50 @@ sensor:
           - lvgl.label.update:
               id: lbl_hum
               text: !lambda |-
-                char buf[8]; snprintf(buf, sizeof(buf), "%.1f%%", x); return buf;
+                char buf[6]; snprintf(buf, sizeof(buf), "%.0f%%", x); return buf;
+          - lvgl.label.update:
+              id: lbl_hum
+              text_color: !lambda |-
+                if (x > 65 || x < 30) return lv_color_hex(0xFF1616); // Mould risk / too dry
+                if (x > 60 || x < 40) return lv_color_hex(0xFF9900); // Acceptable but not ideal
+                return lv_color_hex(0x00C800);                        // ASHRAE / CIBSE optimal
     update_interval: 5s
+
+  # Humidex — perceived temperature from AHT20 temp + humidity
+  # Formula: humidex = T + 0.5555 * (6.11 * e^(5417.753*(1/273.16 - 1/(273.16+Td))) - 10)
+  # Dewpoint approximation: Td ≈ T - ((100 - RH) / 5)  (Magnus, accurate for indoor ranges)
+  # Thresholds: <20 cool (amber), 20-29 comfortable (green), 30-39 warm (amber), >39 hot (red)
+  - platform: template
+    name: "Humidex"
+    id: humidex
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    update_interval: 10s
+    lambda: |-
+      if (!id(temp_aht20).has_state() || !id(hum_aht20).has_state()) return NAN;
+      float T  = id(temp_aht20).state;
+      float RH = id(hum_aht20).state;
+      float Td = T - ((100.0f - RH) / 5.0f);
+      float e  = 6.11f * expf(5417.7530f * (1.0f/273.16f - 1.0f/(273.16f + Td)));
+      return T + 0.5555f * (e - 10.0f);
+    on_value:
+      then:
+        - lvgl.widget.update:
+            id: lbl_humidex
+            hidden: false
+        - lvgl.label.update:
+            id: lbl_humidex
+            text: !lambda |-
+              char buf[8]; snprintf(buf, sizeof(buf), "%.0f°C", x); return buf;
+        - lvgl.label.update:
+            id: lbl_humidex
+            text_color: !lambda |-
+              if (x > 39) return lv_color_hex(0xFF1616); // Hot — heat stress risk
+              if (x > 29) return lv_color_hex(0xFF9900); // Warm — uncomfortable
+              if (x < 20) return lv_color_hex(0xFF9900); // Cool — below comfort zone
+              return lv_color_hex(0x00C800);              // 20-29 comfortable
 
   # BMP280 — pressure with QNH correction for 120m altitude
   - platform: bmp280_i2c
@@ -803,7 +1046,13 @@ sensor:
           - lvgl.label.update:
               id: lbl_temp
               text: !lambda |-
-                char buf[10]; snprintf(buf, sizeof(buf), "%.1f°C", x); return buf;
+                char buf[8]; snprintf(buf, sizeof(buf), "%.0f°C", x); return buf;
+          - lvgl.label.update:
+              id: lbl_temp
+              text_color: !lambda |-
+                if (x > 30 || x < 16) return lv_color_hex(0xFF1616);
+                if (x > 26 || x < 19) return lv_color_hex(0xFF9900);
+                return lv_color_hex(0x00C800);
     humidity:
       name: "SHT40 Relative Humidity"
       id: hum_sht40
@@ -815,7 +1064,13 @@ sensor:
           - lvgl.label.update:
               id: lbl_hum
               text: !lambda |-
-                char buf[8]; snprintf(buf, sizeof(buf), "%.1f%%", x); return buf;
+                char buf[6]; snprintf(buf, sizeof(buf), "%.0f%%", x); return buf;
+          - lvgl.label.update:
+              id: lbl_hum
+              text_color: !lambda |-
+                if (x > 65 || x < 30) return lv_color_hex(0xFF1616);
+                if (x > 60 || x < 40) return lv_color_hex(0xFF9900);
+                return lv_color_hex(0x00C800);
     update_interval: 10s
 
   # SCD40 — real CO2
@@ -840,11 +1095,9 @@ sensor:
               id: arc_co2
               indicator:
                 arc_color: !lambda |-
-                  if (x > 1800) return lv_color_hex(0xFF16e0);
-                  if (x > 1500) return lv_color_hex(0xFF1616);
-                  if (x > 1200) return lv_color_hex(0xFF9C32);
-                  if (x > 800)  return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  if (x > 1200) return lv_color_hex(0xFF1616);   // Poor air quality, cognitive effects
+                  if (x > 800)  return lv_color_hex(0xFF9900); // Stuffy, ventilation needed
+                  return lv_color_hex(0x00C800);
     temperature:
       name: "SCD40 Temperature"
       id: temp_scd40
@@ -879,11 +1132,9 @@ sensor:
               id: arc_eco2
               indicator:
                 arc_color: !lambda |-
-                  if (x > 1800) return lv_color_hex(0xFF16e0);
-                  if (x > 1500) return lv_color_hex(0xFF1616);
-                  if (x > 1200) return lv_color_hex(0xFF9C32);
-                  if (x > 800)  return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  if (x > 1200) return lv_color_hex(0xFF1616);   // Poor air quality, cognitive effects
+                  if (x > 800)  return lv_color_hex(0xFF9900); // Stuffy, ventilation needed
+                  return lv_color_hex(0x00C800);
     tvoc:
       name: "ENS160 TVOC"
       id: tvoc_ens160
@@ -906,11 +1157,9 @@ sensor:
               id: arc_ens_voc
               indicator:
                 arc_color: !lambda |-
-                  if (x > 2000) return lv_color_hex(0xFF16e0);
-                  if (x > 1400) return lv_color_hex(0xFF1616);
-                  if (x > 800)  return lv_color_hex(0xFF9C32);
-                  if (x > 400)  return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  if (x > 500) return lv_color_hex(0xFF1616);   // WELL Building Standard max
+                  if (x > 300) return lv_color_hex(0xFF9900); // Investigate sources
+                  return lv_color_hex(0x00C800);
       filters:
         - exponential_moving_average:
             send_every: 1
@@ -969,11 +1218,9 @@ sensor:
               id: arc_sgp30_voc
               indicator:
                 arc_color: !lambda |-
-                  if (x > 1500) return lv_color_hex(0xFF16e0);
-                  if (x > 1000) return lv_color_hex(0xFF1616);
-                  if (x > 600)  return lv_color_hex(0xFF9C32);
-                  if (x > 300)  return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  if (x > 500) return lv_color_hex(0xFF1616);   // WELL Building Standard max
+                  if (x > 300) return lv_color_hex(0xFF9900); // Investigate sources
+                  return lv_color_hex(0x00C800);
       filters:
         - exponential_moving_average:
             send_every: 1
@@ -1032,64 +1279,71 @@ sensor:
       id: pm1_pms
       on_value:
         then:
+          - lambda: |-
+              id(raw_pm1) = x;
+              id(lv_pm1_val) = (int)clamp(x, 0.0f, 30.0f);
           - lvgl.widget.update:
               id: section_particles
               hidden: false
           - lvgl.arc.update:
               id: arc_pm1
-              value: !lambda "return (int)clamp(x, 0.0f, 30.0f);"
+              value: !lambda "return id(lv_pm1_val);"
           - lvgl.label.update:
               id: lbl_pm1
               text: !lambda |-
-                char buf[8]; snprintf(buf, sizeof(buf), "%.0f", x); return buf;
+                char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm1_val)); return buf;
           - lvgl.widget.update:
               id: arc_pm1
               indicator:
                 arc_color: !lambda |-
-                  if (x > 25) return lv_color_hex(0xFF16e0);
-                  if (x > 15) return lv_color_hex(0xFF1616);
-                  if (x > 10) return lv_color_hex(0xFF9C32);
-                  if (x > 5)  return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  if (x > 25) return lv_color_hex(0xFF1616);   // WHO 2021 indoor guideline
+                  if (x > 10) return lv_color_hex(0xFF9900); // Elevated, investigate
+                  return lv_color_hex(0x00C800);
     pm_2_5:
       name: "PMS Particulate Matter <2.5µm Concentration"
       id: pm25_pms
       on_value:
         then:
+          - lambda: |-
+              id(raw_pm25) = x;
+              float v = id(pm_diff_mode) ? max(0.0f, x - id(raw_pm1)) : x;
+              id(lv_pm25_val) = (int)clamp(v, 0.0f, 30.0f);
           - lvgl.arc.update:
               id: arc_pm25
-              value: !lambda "return (int)clamp(x, 0.0f, 30.0f);"
+              value: !lambda "return id(lv_pm25_val);"
           - lvgl.label.update:
               id: lbl_pm25
               text: !lambda |-
-                char buf[8]; snprintf(buf, sizeof(buf), "%.0f", x); return buf;
+                char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm25_val)); return buf;
           - lvgl.widget.update:
               id: arc_pm25
               indicator:
                 arc_color: !lambda |-
-                  if (x > 25) return lv_color_hex(0xFF16e0);
-                  if (x > 15) return lv_color_hex(0xFF1616);
-                  if (x > 10) return lv_color_hex(0xFF9C32);
-                  if (x > 5)  return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  float v = id(pm_diff_mode) ? max(0.0f, x - id(raw_pm1)) : x;
+                  if (v > 25) return lv_color_hex(0xFF1616);
+                  if (v > 10) return lv_color_hex(0xFF9900);
+                  return lv_color_hex(0x00C800);
     pm_10_0:
       name: "PMS Particulate Matter <10.0µm Concentration"
       id: pm10_pms
       on_value:
         then:
+          - lambda: |-
+              id(raw_pm10) = x;
+              float v = id(pm_diff_mode) ? max(0.0f, x - id(raw_pm25)) : x;
+              id(lv_pm10_val) = (int)clamp(v, 0.0f, 100.0f);
           - lvgl.arc.update:
               id: arc_pm10
-              value: !lambda "return (int)clamp(x, 0.0f, 100.0f);"
+              value: !lambda "return id(lv_pm10_val);"
           - lvgl.label.update:
               id: lbl_pm10
               text: !lambda |-
-                char buf[8]; snprintf(buf, sizeof(buf), "%.0f", x); return buf;
+                char buf[8]; snprintf(buf, sizeof(buf), "%d", id(lv_pm10_val)); return buf;
           - lvgl.widget.update:
               id: arc_pm10
               indicator:
                 arc_color: !lambda |-
-                  if (x > 80) return lv_color_hex(0xFF16e0);
-                  if (x > 60) return lv_color_hex(0xFF1616);
-                  if (x > 45) return lv_color_hex(0xFF9C32);
-                  if (x > 15) return lv_color_hex(0xFFFA72);
-                  return lv_color_hex(0xFFFFFF);
+                  float v = id(pm_diff_mode) ? max(0.0f, x - id(raw_pm25)) : x;
+                  if (v > 45) return lv_color_hex(0xFF1616);
+                  if (v > 20) return lv_color_hex(0xFF9900);
+                  return lv_color_hex(0x00C800);
