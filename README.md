@@ -60,6 +60,27 @@ A new API encryption key can be generated from the ESPHome dashboard when creati
 
 > **Note:** Do not commit your actual credentials to a public repository. If using Option B, ensure your yaml files are in `.gitignore` or that credentials have been removed before pushing.
 
+### Altitude Calibration — QNH Pressure Correction
+
+> ⚠️ **You must set your altitude before flashing** if you want accurate sea-level (QNH) pressure readings.
+
+The BMP280 measures absolute station pressure at your physical location. To convert this to a sea-level equivalent (QNH) — which is what weather apps and meteorological services report — a correction based on your altitude is applied.
+
+Both config files are set to **120m** (the author's installation altitude). Find the following line in whichever yaml you are using and change `120.0` to your actual altitude in metres:
+
+```yaml
+filters:
+  - lambda: return x / pow(1.0 - (120.0 / 44330.0), 5.255);
+```
+
+For example, for an altitude of 50m:
+```yaml
+filters:
+  - lambda: return x / pow(1.0 - (50.0 / 44330.0), 5.255);
+```
+
+If you are at sea level, you can remove the filter entirely or set the value to `0.0`. If you don't know your altitude, [Google Maps](https://maps.google.com) will show elevation when you right-click any location, or search for your suburb/postcode with "elevation" appended.
+
 ---
 
 ## Non-LVGL Version (`airquality01.yaml`)
@@ -224,11 +245,12 @@ display:
 
 ### Temperature, Humidity and Comfort Index
 
-The header row displays three values derived from the AHT20:
+The header row displays four values derived from the AHT20:
 
-- **Temperature** — colour-coded based on ASHRAE 55 home comfort range
-- **Humidity** — colour-coded based on ASHRAE 62.1 and CIBSE Guide A
-- **Humidex** — a "feels like" temperature calculated from temperature and humidity using the Humidex formula (Magnus approximation for dewpoint). Displayed with its own comfort colour coding
+- **TEMP** — colour-coded based on ASHRAE 55 home comfort range
+- **HUM** — colour-coded based on ASHRAE 62.1 and CIBSE Guide A
+- **FEEL** — Humidex "feels like" temperature, calculated from temperature and humidity
+- **DEW** — dewpoint temperature, colour-coded for indoor comfort
 
 #### Temperature thresholds (ASHRAE 55)
 
@@ -246,7 +268,7 @@ The header row displays three values derived from the AHT20:
 | 🟡 Amber | 30–40% or 60–65% | Dry or humid but acceptable |
 | 🔴 Red | <30% or >65% | Too dry (irritation, static) or mould risk |
 
-#### Humidex comfort thresholds
+#### Humidex (FEEL) comfort thresholds
 
 | Colour | Range | Meaning |
 |--------|-------|---------|
@@ -255,13 +277,24 @@ The header row displays three values derived from the AHT20:
 | 🟡 Amber | 30–39°C | Warm — some discomfort |
 | 🔴 Red | >39°C | Hot — heat stress risk |
 
-The Humidex is calculated on-device using:
+#### Dewpoint (DEW) thresholds
+
+| Colour | Range | Meaning |
+|--------|-------|---------|
+| 🟡 Amber | <10°C | Dry — low humidity, possible irritation |
+| 🟢 Green | 10–16°C | Comfortable indoor dewpoint range |
+| 🟡 Amber | 16–21°C | Humid — getting uncomfortable |
+| 🔴 Red | >21°C | Muggy — uncomfortably humid |
+
+Dewpoint is a more reliable indicator of perceived humidity than relative humidity alone, as it is independent of temperature. A dewpoint above 21°C is generally considered uncomfortable regardless of the actual temperature.
+
+Both Humidex and Dewpoint are calculated on-device using the Magnus approximation:
 ```
 dewpoint ≈ T - ((100 - RH) / 5)
 humidex  = T + 0.5555 * (6.11 * e^(5417.753*(1/273.16 - 1/(273.16+Td))) - 10)
 ```
 
-This is the Magnus approximation for dewpoint, accurate to within 0.35°C for typical indoor temperature ranges.
+Accurate to within 0.35°C for typical indoor temperature ranges.
 
 ---
 
