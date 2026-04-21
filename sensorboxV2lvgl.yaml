@@ -595,7 +595,7 @@ lvgl:
               widgets:
                 - arc:
                     id: arc_co2
-                    width: 95
+                    width: 77 #Original value '95'
                     height: 76
                     min_value: 400
                     max_value: 2000
