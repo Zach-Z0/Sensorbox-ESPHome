@@ -243,8 +243,8 @@ font:
 
 
 # ── LVGL ─────────────────────────────────────────────────────────────────────
-#
-# Layout (240 × 320) — based on confirmed connected sensors from boot log:
+#   Updated ranges here as needed. May not be 100% accurate
+#   Layout (240 × 320) — based on confirmed connected sensors from boot log:
 #
 #   CONNECTED:  AHT20, BMP280, SCD40, SGP30, PMSX003, ZE08-CH2O
 #   FAILED:     SHT40, ENS160, AHT20/ENS160 (i2c_2), SGP4x
@@ -253,10 +253,10 @@ font:
 #   y= 39        Divider
 #   y= 40..134  Particles  (3 arcs: PM1  PM2.5  PM10)
 #   y=135        Divider
-#   y=136..230  CO2        (1 large arc: SCD40, + hidden ENS160 arc)
-#   y=231        Divider
-#   y=232..319  VOC        (2 arcs: SGP30  ZE08, + hidden ENS160 TVOC arc)
-#
+#   y=136..225  CO2        (1 large arc: SCD40, + hidden ENS160 arc)
+#   y=226        Divider
+#   y=227..315  VOC        (2 arcs: SGP30  ZE08, + hidden ENS160 TVOC arc)
+#   y=316-320   Unused space
 #   All widgets start hidden: true and reveal on first sensor on_value.
 #   Adding a sensor later automatically reveals its arc — no code changes needed.
 #   SGP41 section hidden — overlaps VOC area, reveals if SGP4x ever connected.
@@ -566,7 +566,7 @@ lvgl:
         x: 0
         y: 136
         width: 240
-        height: 95
+        height: 89 #Previous value '95'
         bg_color: 0x000000
         border_width: 0
         pad_all: 0
@@ -583,7 +583,7 @@ lvgl:
               x: 0
               y: 16
               width: 240
-              height: 76
+              height: 73 #Previous value '76'
               bg_color: 0x000000
               border_width: 0
               pad_all: 0
@@ -595,8 +595,8 @@ lvgl:
               widgets:
                 - arc:
                     id: arc_co2
-                    width: 77 #Original value '95'
-                    height: 76
+                    width: 71 #Original value '95'
+                    height: 73 #Original value '76'
                     min_value: 400
                     max_value: 2000
                     value: 400
@@ -619,15 +619,15 @@ lvgl:
                           text_color: 0xFFFFFF
                       - label:
                           align: BOTTOM_MID
-                          y: -4 #Original value '2'
+                          y: -3 #Original value '2'
                           text: "SCD40"
                           text_font: font_small
                           text_color: 0x666666
 
                 - arc: #changes to this section are untested, only mirror changes made to SCD40 section
                     id: arc_eco2
-                    width: 77 #Original value '95'
-                    height: 76
+                    width: 71 #Original value '95'
+                    height: 73
                     min_value: 400
                     max_value: 2000
                     value: 400
@@ -651,7 +651,7 @@ lvgl:
                           text_color: 0xFFFFFF
                       - label:
                           align: BOTTOM_MID
-                          y: -4 #Original value '2'
+                          y: -3 #Original value '2'
                           text: "ENS est."
                           text_font: font_small
                           text_color: 0x666666
@@ -671,7 +671,7 @@ lvgl:
     - obj:
         id: section_voc
         x: 0
-        y: 232
+        y: 227 #Original value 232
         width: 240
         height: 88
         bg_color: 0x000000
@@ -681,14 +681,14 @@ lvgl:
         widgets:
           - label:
               x: 4
-              y: -3 #Original value '2', 2  + (-5) = -3
+              y: 2
               text: "VOC  ppb"
               text_font: font_heading
               text_color: 0x666666
 
           - obj:
               x: 0
-              y: 11 #Original value '16', 16 + (-5)= 11
+              y: 16
               width: 240
               height: 72
               bg_color: 0x000000
@@ -1041,7 +1041,7 @@ sensor:
       name: "BMP280 Pressure (QNH)"
       id: pres_bmp280
       filters:
-        - lambda: return x / pow(1.0 - (21.0 / 44330.0), 5.255); #My elevation is 21m above seal level, change as needed for you.
+        - lambda: return x / pow(1.0 - (21.0 / 44330.0), 5.255); #Adjust elevation here as needed.
       on_value:
         then:
           - lvgl.widget.update:
@@ -1376,4 +1376,3 @@ sensor:
                   if (v > 45) return lv_color_hex(0xFF1616);
                   if (v > 20) return lv_color_hex(0xFF9900);
                   return lv_color_hex(0x00C800);
-                  
