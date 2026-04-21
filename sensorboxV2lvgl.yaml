@@ -872,7 +872,7 @@ uart:
         - lambda: |-
             UARTDebug::log_hex(direction, bytes, ',');
             if (bytes.size() == 9 && bytes[0] == 0xFF && bytes[1] == 0x17) {
-              float value = float((bytes[6] << 8) | bytes[7]);
+              float value = float((bytes[4] << 8) | bytes[5]);
               id(ch2o_ze08).publish_state(value);
             }
 
