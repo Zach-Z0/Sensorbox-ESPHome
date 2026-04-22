@@ -1,15 +1,21 @@
+# Sensorbox V2 configuration file
+#
 # Note: Some sensors have a limited lifespan.
 # The particle sensor (PMX003) states an MTTF (rated lifespan) of 3 years on its data sheet, but other sources online say the laser inside
 # only lasts about a year (8000 hrs) if being used consistently (0s update interval).
 # Consider setting the "update_interval" to something >= 30s, ctrl + f "PMS update interval" to find the variable easily.
+# I chose to set it to 30s exactly so the fan does not spin down and you need to worry about clearing bad data.
 #
 # The formaldehyde sensor (ZE08) states an MTTF (rated lifespan) of 5 years.
 #
 # Other sensors were not checked, feel free to look up their data sheets.
 
+# For future personal reference:
+#   Device/Sensors last serviced: April 2026
+
 esphome:
-  name: airquality01
-  friendly_name: AirQuality01
+  name: air-quality-indicator
+  friendly_name: Air Quality Indicator
   min_version: 2024.6.0
   name_add_mac_suffix: false
   platformio_options:
@@ -1050,7 +1056,7 @@ sensor:
       name: "BMP280 Pressure (QNH)"
       id: pres_bmp280
       filters:
-        - lambda: return x / pow(1.0 - (120.0 / 44330.0), 5.255); #Adjust elevation here as needed.
+        - lambda: return x / pow(1.0 - (21.0 / 44330.0), 5.255); #Adjust elevation here as needed.
       on_value:
         then:
           - lvgl.widget.update:
@@ -1310,7 +1316,7 @@ sensor:
   # PMSX003 particle sensor
   - platform: pmsx003
     type: PMSX003
-    update_interval: 0s #PMS update interval, consider setting it to 30s to increase the lifespan of the laser
+    update_interval: 30s #PMS update interval
     uart_id: uart_pms
     pm_1_0:
       name: "PMS Particulate Matter <1.0µm Concentration"
