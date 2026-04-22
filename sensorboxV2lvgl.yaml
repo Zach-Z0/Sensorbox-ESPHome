@@ -1,3 +1,12 @@
+# Note: Some sensors have a limited lifespan.
+# The particle sensor (PMX003) states an MTTF (rated lifespan) of 3 years on its data sheet, but other sources online say the laser inside
+# only lasts about a year (8000 hrs) if being used consistently (0s update interval).
+# Consider setting the "update_interval" to something >= 30s, ctrl + f "PMS update interval" to find the variable easily.
+#
+# The formaldehyde sensor (ZE08) states an MTTF (rated lifespan) of 5 years.
+#
+# Other sensors were not checked, feel free to look up their data sheets.
+
 esphome:
   name: airquality01
   friendly_name: AirQuality01
@@ -9,7 +18,7 @@ esphome:
     name: esphome.web
     version: dev
   includes:
-    - winsen_ze08.h
+    #- winsen_ze08.h #This header file does not exist, or does it seem to be needed to function. Commented out for now.
 
 esp32:
   board: esp32-s2-saola-1
@@ -243,8 +252,8 @@ font:
 
 
 # ── LVGL ─────────────────────────────────────────────────────────────────────
-#
-# Layout (240 × 320) — based on confirmed connected sensors from boot log:
+#   Updated ranges here as needed. May not be 100% accurate
+#   Layout (240 × 320) — based on confirmed connected sensors from boot log:
 #
 #   CONNECTED:  AHT20, BMP280, SCD40, SGP30, PMSX003, ZE08-CH2O
 #   FAILED:     SHT40, ENS160, AHT20/ENS160 (i2c_2), SGP4x
@@ -253,10 +262,10 @@ font:
 #   y= 39        Divider
 #   y= 40..134  Particles  (3 arcs: PM1  PM2.5  PM10)
 #   y=135        Divider
-#   y=136..230  CO2        (1 large arc: SCD40, + hidden ENS160 arc)
-#   y=231        Divider
-#   y=232..319  VOC        (2 arcs: SGP30  ZE08, + hidden ENS160 TVOC arc)
-#
+#   y=136..225  CO2        (1 large arc: SCD40, + hidden ENS160 arc)
+#   y=226        Divider
+#   y=227..315  VOC        (2 arcs: SGP30  ZE08, + hidden ENS160 TVOC arc)
+#   y=316-320   Unused space
 #   All widgets start hidden: true and reveal on first sensor on_value.
 #   Adding a sensor later automatically reveals its arc — no code changes needed.
 #   SGP41 section hidden — overlaps VOC area, reveals if SGP4x ever connected.
@@ -440,9 +449,9 @@ lvgl:
 
           - obj:
               x: 0
-              y: 16
+              y: 23 #Previous value '16'
               width: 240
-              height: 72
+              height: 72 #Previosu value '72'
               bg_color: 0x000000
               border_width: 0
               pad_all: 0
@@ -472,14 +481,14 @@ lvgl:
                       - label:
                           id: lbl_pm1
                           align: CENTER
-                          y: -5
+                          y: -3 #Previous value '-5'
                           text: "--"
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
                           id: lbl_pm1_name
                           align: BOTTOM_MID
-                          y: 2
+                          y: -4 #Previous value '2'
                           text: "PM1"
                           text_font: font_small
                           text_color: 0x666666
@@ -504,14 +513,14 @@ lvgl:
                       - label:
                           id: lbl_pm25
                           align: CENTER
-                          y: -5
+                          y: -3 #Previous value '-5'
                           text: "--"
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
                           id: lbl_pm25_name
                           align: BOTTOM_MID
-                          y: 2
+                          y: -4 #Previous value '2'
                           text: "PM2.5"
                           text_font: font_small
                           text_color: 0x666666
@@ -536,14 +545,14 @@ lvgl:
                       - label:
                           id: lbl_pm10
                           align: CENTER
-                          y: -5
+                          y: -3 #Previous value '-5'
                           text: "--"
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
                           id: lbl_pm10_name
                           align: BOTTOM_MID
-                          y: 2
+                          y: -4 #Previous value '2'
                           text: "PM10"
                           text_font: font_small
                           text_color: 0x666666
@@ -566,7 +575,7 @@ lvgl:
         x: 0
         y: 136
         width: 240
-        height: 95
+        height: 89 #Previous value '95'
         bg_color: 0x000000
         border_width: 0
         pad_all: 0
@@ -583,7 +592,7 @@ lvgl:
               x: 0
               y: 16
               width: 240
-              height: 76
+              height: 73 #Previous value '76'
               bg_color: 0x000000
               border_width: 0
               pad_all: 0
@@ -595,8 +604,8 @@ lvgl:
               widgets:
                 - arc:
                     id: arc_co2
-                    width: 95
-                    height: 76
+                    width: 71 #Original value '95'
+                    height: 73 #Original value '76'
                     min_value: 400
                     max_value: 2000
                     value: 400
@@ -613,21 +622,21 @@ lvgl:
                       - label:
                           id: lbl_co2
                           align: CENTER
-                          y: -5
+                          y: -3 #Original value '-5'
                           text: "---"
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
                           align: BOTTOM_MID
-                          y: 2
+                          y: -3 #Original value '2'
                           text: "SCD40"
                           text_font: font_small
                           text_color: 0x666666
 
-                - arc:
+                - arc: #changes to this section are untested, only mirror changes made to SCD40 section
                     id: arc_eco2
-                    width: 95
-                    height: 76
+                    width: 71 #Original value '95'
+                    height: 73
                     min_value: 400
                     max_value: 2000
                     value: 400
@@ -645,21 +654,21 @@ lvgl:
                       - label:
                           id: lbl_eco2
                           align: CENTER
-                          y: -5
+                          y: -3 #Original value '-5'
                           text: "---"
                           text_font: font_value
                           text_color: 0xFFFFFF
                       - label:
                           align: BOTTOM_MID
-                          y: 2
+                          y: -3 #Original value '2'
                           text: "ENS est."
                           text_font: font_small
                           text_color: 0x666666
-
+                          
     # ── DIVIDER ──────────────────────────────────────────────────────────────
     - line:
         x: 0
-        y: 231
+        y: 226 #Original value '231', difference of -5
         points:
           - 0, 0
           - 240, 0
@@ -671,7 +680,7 @@ lvgl:
     - obj:
         id: section_voc
         x: 0
-        y: 232
+        y: 227 #Original value 232
         width: 240
         height: 88
         bg_color: 0x000000
@@ -872,7 +881,7 @@ uart:
         - lambda: |-
             UARTDebug::log_hex(direction, bytes, ',');
             if (bytes.size() == 9 && bytes[0] == 0xFF && bytes[1] == 0x17) {
-              float value = float((bytes[6] << 8) | bytes[7]);
+              float value = float((bytes[4] << 8) | bytes[5]);
               id(ch2o_ze08).publish_state(value);
             }
 
@@ -1041,7 +1050,7 @@ sensor:
       name: "BMP280 Pressure (QNH)"
       id: pres_bmp280
       filters:
-        - lambda: return x / pow(1.0 - (120.0 / 44330.0), 5.255);
+        - lambda: return x / pow(1.0 - (120.0 / 44330.0), 5.255); #Adjust elevation here as needed.
       on_value:
         then:
           - lvgl.widget.update:
@@ -1301,7 +1310,7 @@ sensor:
   # PMSX003 particle sensor
   - platform: pmsx003
     type: PMSX003
-    update_interval: 0s
+    update_interval: 0s #PMS update interval, consider setting it to 30s to increase the lifespan of the laser
     uart_id: uart_pms
     pm_1_0:
       name: "PMS Particulate Matter <1.0µm Concentration"
